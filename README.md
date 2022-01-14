@@ -21,5 +21,4 @@ once the `input.txt` is saved run the program to get the next guess.
 for the first guess it is hard coded to `ADIEU` because all the vowels seems like a good idea.
 
 ## FUTURE PLANS
-* work on the dictionary.
 * analsis on best first guess.

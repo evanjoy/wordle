@@ -41,10 +41,10 @@ for line in map(lambda x: x.strip().lower(), fileinput.input("input.txt")):
     for ltr, least in curr_at_least.items():
         at_least[ltr] = max(at_least[ltr], least)
 
-if len(used) == 0:
-    print("############ first guess")
-    print("adieu")
-    exit()
+# if len(used) == 0:
+#     print("############ first guess")
+#     print("adieu")
+#     exit()
 
 print("############ constraints")
 print("words used:", used)
