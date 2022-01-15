@@ -1,106 +1,174 @@
 #!python3
 
+from enum import Enum
 import fileinput
 from collections import Counter, defaultdict
+from typing import Dict, List, Set
+from multiprocessing import Pool
 
-at_least = defaultdict(lambda: 0)
-allowed = [
-    {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'},
-    {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'},
-    {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'},
-    {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'},
-    {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'},
-]
 
-used = set()
+class Mode(Enum):
+    absent = "_"
+    present = "-"
+    correct = "+"
 
-for line in map(lambda x: x.strip().lower(), fileinput.input("input.txt")):
-    curr_at_least = defaultdict(lambda: 0)
-    word = ""
-    for pos in range(5):
-        mode = line[2*pos]
-        ltr = line[2*pos + 1]
-        word += ltr
-        if mode == '_':
-            for allow in allowed:
-                if ltr in allow:
-                    allow.remove(ltr)
-        else:
-            if mode == '+':
-                allowed[pos] = {ltr}
-            elif ltr in allowed[pos]:
-                allowed[pos].remove(ltr)
-            curr_at_least[ltr] += 1
-    used.add(word)
 
-    for ltr, least in curr_at_least.items():
-        at_least[ltr] = max(at_least[ltr], least)
+class Constraint:
+    at_least: Dict[str, int]
+    allows: List[Set[str]]
+    used: Set[str]
 
-# if len(used) == 0:
-#     print("############ first guess")
-#     print("adieu")
-#     exit()
+    def __init__(
+        self,
+        at_least=None,
+        allows=None,
+        used=None,
+    ) -> None:
+        self.at_least = at_least if at_least else {}
+        self.allows = (
+            allows
+            if allows
+            else [
+                set(map(chr, range(97, 123))),
+                set(map(chr, range(97, 123))),
+                set(map(chr, range(97, 123))),
+                set(map(chr, range(97, 123))),
+                set(map(chr, range(97, 123))),
+            ]
+        )
+        self.used = used if used else set()
 
-print("############ constraints")
-print("words used:", used)
-print("at least:", ", ".join([f"{c}:{ltr}" for ltr, c in at_least.items()]))
-for pos in range(5):
-    foo = list(allowed[pos])
-    foo.sort()
-    print(pos, ":", "".join(foo))
+    @staticmethod
+    def parse(line: str) -> None:
+        out = Constraint()
+        out.used.add("".join(map(line.__getitem__, range(1, 10, 2))))
 
-words = map(lambda x: x.strip().lower(), open('words.txt', 'r'))
-candidates = []
-for word in words:
-    fail = False
-    if word in used:
-        fail = True
-    word_has = Counter(word)
-    for ltr, count in at_least.items():
-        if word_has[ltr] < count:
+        clues = []
+        for pos in range(0, 10, 2):
+            mode = Mode(line[pos])
+            ltr = line[pos + 1]
+            clues.append((pos // 2, mode, ltr))
+
+        for pos, mode, ltr in filter(lambda x: x[1] == Mode.absent, clues):
+            for allow in out.allows:
+                allow.discard(ltr)
+        for pos, mode, ltr in filter(lambda x: x[1] == Mode.present, clues):
+            for allow in out.allows:
+                allow.add(ltr)
+            out.allows[pos].discard(ltr)
+            out.at_least[ltr] = out.at_least.get(ltr, 0) + 1
+        for pos, mode, ltr in filter(lambda x: x[1] == Mode.absent, clues):
+            out.allows[pos].discard(ltr)
+        for pos, mode, ltr in filter(lambda x: x[1] == Mode.correct, clues):
+            out.allows[pos] = {ltr}
+            out.at_least[ltr] = out.at_least.get(ltr, 0) + 1
+
+        return out
+
+    @staticmethod
+    def diff(mystry, guess: str):
+        mapping = [-1, -1, -1, -1, -1]
+        for pos in range(5):
+            if mystry[pos] == guess[pos]:
+                mapping[pos] = pos
+        start_at = defaultdict(lambda: 0)
+        for pos in range(5):
+            if mapping[pos] != -1:
+                continue
+            ltr = mystry[pos]
+            mapping[pos] = guess.find(ltr, start_at[ltr])
+            if mapping[pos] != -1:
+                start_at[ltr] = mapping[pos]
+
+        rmapping = {
+            v: Mode.correct if k == v else Mode.present
+            for k, v in enumerate(mapping)
+            if v != -1
+        }
+
+        clues = "".join(
+            [rmapping.get(pos, Mode.absent).value + guess[pos] for pos in range(5)]
+        )
+
+        return Constraint.parse(clues)
+
+    def __and__(self, othr):
+        return Constraint(
+            {
+                k: max(othr.at_least.get(k, 0), self.at_least.get(k, 0))
+                for k in self.at_least | othr.at_least
+            },
+            list(map(lambda a: a[0].intersection(a[1]), zip(self.allows, othr.allows))),
+            self.used.union(othr.used),
+        )
+
+    def __repr__(self) -> str:
+        pass
+        out = f"words used: [{', '.join(self.used)}], "
+        out += f"at least: [{', '.join([f'{c}:{ltr}' for ltr, c in self.at_least.items()])}], "
+        out += f"allowed: [{', '.join(map(str, map(len, self.allows)))}]"
+        return out
+
+    def match(self, word: str) -> bool:
+        fail = False
+        if word in self.used:
             fail = True
-    for pos, ltr in enumerate(word):
-        if ltr not in allowed[pos]:
-            fail = True
-    if fail:
-        continue
-    # passed both tests
-    candidates.append(word)
+        word_has = Counter(word)
+        for ltr, count in self.at_least.items():
+            if word_has[ltr] < count:
+                fail = True
+        for pos, ltr in enumerate(word):
+            if ltr not in self.allows[pos]:
+                fail = True
+        return not fail
 
-# compute letter frequence for each posistion
-pos_ltr_freq = [Counter(), Counter(), Counter(), Counter(), Counter()]
-for word in candidates:
-    for pos, ltr in enumerate(word):
-        pos_ltr_freq[pos][ltr] += 1
-pos_tot = [sum(ltr_freq.values()) for ltr_freq in pos_ltr_freq]
+    def score(self):
+        """
+        how specific the constraints are. inverse how many letters are
+        allowed in each posision. if all 26 letters are allowed then
+        the score is 1/26. if only one letter is allowed then the score
+        is 1/1.
+        """
+        return sum(map(lambda allow: 1 / len(allow), self.allows))
 
-print("############ scores for", len(candidates))
-for pos in range(5):
-    print([f"{ltr}:{freq*100//pos_tot[pos]}%" for ltr,
-           freq in pos_ltr_freq[pos].most_common(10)])
 
-guesses = []
-for word in candidates:
-    score = 0
-    for pos, ltr in enumerate(word):
-        score += pos_ltr_freq[pos][ltr] / pos_tot[pos]
+def do_score(args):
+    guess, candidates = args
+    # total_matched = 0
+    # total_candidate = 0
+    total = 0
+    for mystry in candidates:
+        if guess == mystry:
+            continue
+        cons = Constraint.diff(mystry, guess)
+        total += cons.score()
+    return guess, total / len(candidates)
 
-    # halving those scores of the guesses with multiple of the same letter
-    for ltr, count in Counter(word).items():
-        if ((at_least[ltr] != 0 and count > at_least[ltr]) or
-                (at_least[ltr] == 0 and count > 1)):
-            score = score / 2
 
-    guesses.append((word, score))
-    guesses.sort(key=lambda guess: guess[1], reverse=True)
-    if len(guesses) > 10:
-        guesses.pop()
+if __name__ == "__main__":
+    constraints = Constraint()
+    for line in map(lambda x: x.strip().lower(), fileinput.input("input.txt")):
+        if line.startswith("#"):
+            continue
+        constraints &= Constraint.parse(line)
 
-print("############ guesses")
-print("\n".join(
-    map(lambda word_score: f"{word_score[0]}: {round(word_score[1], 2)}", guesses)))
+    print(constraints)
+
+    words = set(map(lambda x: x.strip().lower(), open("words.txt", "r")))
+    hist = set(map(lambda x: x.strip().lower(), open("history.txt", "r")))
+    words -= hist
+    candidates = list(filter(constraints.match, words))
+
+    with Pool() as p:
+        scores = list(
+            p.imap_unordered(
+                do_score, map(lambda guess: (guess, candidates), candidates)
+            )
+        )
+
+    print("number of candidates", len(candidates))
+    scores.sort(key=lambda x: x[1], reverse=True)
+    for n in range(min(len(scores), 20)):
+        guess, score = scores[n]
+        score *= 100
+        print(f"{score}\t{guess}")

@@ -1,4 +1,5 @@
 # WORDLE SOLVER
+
 This wordle solver is meant to be run once for each guess. The program tells you what to guess in turn you feed it the clues and it will tell you what to guess next.
 
 ## INPUT
@@ -14,11 +15,11 @@ if you guess `PILLS` and the letter `I` is in the word but in the wrong spot enc
 for all the letters that aren't in the word you prefix with an `_` (underscore)
 
 ## RUNNING
+
 once the `input.txt` is saved run the program to get the next guess.
 
 `./wordle.py`
 
-for the first guess it is hard coded to `ADIEU` because all the vowels seems like a good idea.
+for the first guess it might take up to 20 seconds to go through the possibilities.
 
-## FUTURE PLANS
-* analsis on best first guess.
+after you've found a solution add it to the `history.txt`. it won't be included in computations or guesses after that.

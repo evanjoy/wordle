@@ -132,6 +132,7 @@ offal
 ought
 outdo
 panel
+panic
 paper
 parry
 peach
@@ -160,11 +161,13 @@ round
 salad
 seedy
 serve
+shire
 shrub
 siege
 sissy
 slump
 smart
+solar
 solve
 sonic
 sower
