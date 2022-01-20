@@ -86,20 +86,35 @@ def test_parse_constraints(input, at_least, allows):
     assert c.allows[3] == allows[3]
     assert c.allows[4] == allows[4]
 
+
 diff_parameters = [
     (
         "shire",
         "cross",
         {"s": 1, "r": 1},
         [
-            alphabet - {'o', 'c'},
-            alphabet - {'o', 'c', 'r'},
-            alphabet - {'o', 'c'},
-            alphabet - {'o', 'c', 's'},
-            alphabet - {'o', 'c', 's'},
+            alphabet - {"o", "c"},
+            alphabet - {"o", "c", "r"},
+            alphabet - {"o", "c"},
+            alphabet - {"o", "c", "s"},
+            alphabet - {"o", "c", "s"},
+        ],
+    ),
+    (
+        "adage",
+        "adiue",
+        {"a": 1, "d": 1, "e": 1},
+        [
+            {"a"},
+            {"d"},
+            alphabet - {"i", "u"},
+            alphabet - {"i", "u"},
+            {"e"},
         ],
     ),
 ]
+
+
 @pytest.mark.parametrize(
     "input_a,input_b,at_least,allows",
     diff_parameters,

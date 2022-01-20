@@ -67,18 +67,19 @@ class Constraint:
 
     @staticmethod
     def diff(mystry, guess: str):
+        mguess = guess
         mapping = [-1, -1, -1, -1, -1]
         for pos in range(5):
-            if mystry[pos] == guess[pos]:
+            if mystry[pos] == mguess[pos]:
                 mapping[pos] = pos
-        start_at = defaultdict(lambda: 0)
+                mguess = mguess[:pos] + "_" + mguess[pos + 1 :]
         for pos in range(5):
             if mapping[pos] != -1:
                 continue
             ltr = mystry[pos]
-            mapping[pos] = guess.find(ltr, start_at[ltr])
-            if mapping[pos] != -1:
-                start_at[ltr] = mapping[pos]
+            to_pos = mapping[pos] = mguess.find(ltr)
+            if to_pos != -1:
+                mguess = mguess[:to_pos] + "_" + mguess[to_pos + 1 :]
 
         rmapping = {
             v: Mode.correct if k == v else Mode.present
@@ -145,19 +146,8 @@ def do_score(args):
     return guess, total / len(candidates)
 
 
-if __name__ == "__main__":
-    constraints = Constraint()
-    for line in map(lambda x: x.strip().lower(), fileinput.input("input.txt")):
-        if line.startswith("#"):
-            continue
-        constraints &= Constraint.parse(line)
-
-    print(constraints)
-
-    words = set(map(lambda x: x.strip().lower(), open("words.txt", "r")))
-    hist = set(map(lambda x: x.strip().lower(), open("history.txt", "r")))
-    words -= hist
-    candidates = list(filter(constraints.match, words))
+def make_guess(candidates, constraints):
+    candidates = list(filter(constraints.match, candidates))
 
     with Pool() as p:
         scores = list(
@@ -166,9 +156,51 @@ if __name__ == "__main__":
             )
         )
 
-    print("number of candidates", len(candidates))
     scores.sort(key=lambda x: x[1], reverse=True)
-    for n in range(min(len(scores), 20)):
-        guess, score = scores[n]
-        score *= 100
-        print(f"{score}\t{guess}")
+    return list(map(lambda x: x[0], scores))
+
+
+def solve(mystry):
+    starting = "adieu"
+    candidates = set(map(lambda x: x.strip().lower(), open("words.txt", "r")))
+    constraints = Constraint.diff(mystry, starting)
+    rounds = 1
+    print(mystry)
+    print(f"\t{starting}")
+    while True:
+        guesses = make_guess(candidates, constraints)
+        if len(guesses) == 0:
+            break
+        rounds += 1
+        print(f"\t{guesses[0]}")
+        constraints &= Constraint.diff(mystry, guesses[0])
+    print(f"\t{rounds}")
+
+
+def daily():
+    constraints = Constraint()
+    for line in map(lambda x: x.strip().lower(), fileinput.input("input.txt")):
+        if line.startswith("#") or not line:
+            continue
+        constraints &= Constraint.parse(line)
+
+    print(constraints)
+
+    words = set(map(lambda x: x.strip().lower(), open("words.txt", "r")))
+    hist = set(map(lambda x: x.strip().lower(), open("history.txt", "r")))
+    words -= hist
+    guesses = make_guess(words, constraints)
+    print("number of candidates", len(guesses))
+    for n in range(min(len(guesses), 20)):
+        guess = guesses[n]
+        print(guess)
+
+
+def historical():
+    words = set(map(lambda x: x.strip().lower(), open("words.txt", "r")))
+    for mystry in words:
+        solve(mystry)
+
+
+if __name__ == "__main__":
+    daily()

@@ -211,3 +211,6 @@ tangy
 panic
 solar
 shire
+proxy
+point
+robot
