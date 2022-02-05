@@ -1,25 +1,36 @@
 # WORDLE SOLVER
 
-This wordle solver is meant to be run once for each guess. The program tells you what to guess in turn you feed it the clues and it will tell you what to guess next.
+This fork is a full UI around abersnaze's wordle guess-generator (https://github.com/abersnaze/wordle).
+
+![UI screenshot](https://github.com/evanjoy/wordle/blob/main/screenshot_suggestion.png)
+
+You can use it to help play the real Wordle.  Or you can play "backwards-wordle" with it where you pick the secret word and then see how the solver acts.  See if you can stump it!
 
 ## INPUT
 
-if you guess `WEARY` and the `W` is in the right spot put a `+` (plus) the response as
+This tool alternates between:
+ - Word selection - tell the solver what word you guessed
+ - Color entry - tell the solver what colors Wordle assigned to the letters
+ - Generating guesses - giving you a list of words to try next
 
-> `+W_E_A_R_Y`
+### Picking a word
+You can click a word in the Favorites or Suggestions section, or type it in to the input box at the top. Then click the confirm button.  There are currently no suggestions implemented for the first word.  Just pick one of your favorites or type a word.  Many people like to start with "adieu" to get most of the vowels out of the way.
 
-if you guess `PILLS` and the letter `I` is in the word but in the wrong spot encode it with `-` (minus) like
+### Setting colors
+After entering a word, you tell the solver what Wordle said about each letter in that word so that it can generate the next guesses.
 
-> `_P-I_L_L_S`
+Clicking a letter will cycle between gray, yellow, and green.
 
-for all the letters that aren't in the word you prefix with an `_` (underscore)
+Once it matches what shows up in your actual Wordle game, click Confirm.
 
 ## RUNNING
 
-once the `input.txt` is saved run the program to get the next guess.
-
 `./wordle.py`
 
-for the first guess it might take up to 20 seconds to go through the possibilities.
+When you confirm the colors on the first word, it might take up to 20 seconds to go through the possibilities.
 
-after you've found a solution add it to the `history.txt`. it won't be included in computations or guesses after that.
+(Note: this version doesn't currently use history.txt)
+
+## Configuration
+
+Put words you like to start the game with in favorites.txt, and they'll show up in the favorites section of the word picker.

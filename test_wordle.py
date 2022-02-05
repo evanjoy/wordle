@@ -1,4 +1,4 @@
-from wordle import Constraint
+from wordle_model import Constraint
 import pytest
 
 
