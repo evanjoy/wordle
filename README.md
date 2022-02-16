@@ -1,6 +1,8 @@
 # WORDLE SOLVER
 
-This fork is a full UI around abersnaze's wordle guess-generator (https://github.com/abersnaze/wordle).
+This fork is a full UI around abersnaze's wordle guess-generator (https://github.com/abersnaze/wordle)
+
+It's mostly an exercise for learning tkinter with something other than a vanilla UI with only text inputs and labels.
 
 ![UI screenshot](https://github.com/evanjoy/wordle/blob/main/screenshot_suggestion.png)
 
